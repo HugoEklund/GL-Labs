@@ -29,8 +29,8 @@ int main()
 	//
 	InputHandler input_handler;
 	FPSCameraf camera(0.5f * glm::half_pi<float>(),
-	                  static_cast<float>(config::resolution_x) / static_cast<float>(config::resolution_y),
-	                  0.01f, 1000.0f);
+					  static_cast<float>(config::resolution_x) / static_cast<float>(config::resolution_y), 0.01f, 1000.0f);
+
 	camera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 6.0f));
 	camera.mWorld.LookAt(glm::vec3(0.0f));
 	camera.mMouseSensitivity = glm::vec2(0.003f);
@@ -71,9 +71,9 @@ int main()
 	ShaderProgramManager program_manager;
 	GLuint celestial_body_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Celestial Body",
-	                                         { { ShaderType::vertex, "EDAF80/default.vert" },
-	                                           { ShaderType::fragment, "EDAF80/default.frag" } },
-	                                         celestial_body_shader);
+											 { { ShaderType::vertex, "EDAF80/default.vert" },
+											   { ShaderType::fragment, "EDAF80/default.frag" } },
+											 celestial_body_shader);
 	if (celestial_body_shader == 0u) {
 		LogError("Failed to generate the “Celestial Body” shader program: exiting.");
 
@@ -83,9 +83,9 @@ int main()
 	}
 	GLuint celestial_ring_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Celestial Ring",
-	                                         { { ShaderType::vertex, "EDAF80/celestial_ring.vert" },
-	                                           { ShaderType::fragment, "EDAF80/celestial_ring.frag" } },
-	                                         celestial_ring_shader);
+											 { { ShaderType::vertex, "EDAF80/celestial_ring.vert" },
+											   { ShaderType::fragment, "EDAF80/celestial_ring.frag" } },
+											 celestial_ring_shader);
 	if (celestial_ring_shader == 0u) {
 		LogError("Failed to generate the “Celestial Ring” shader program: exiting.");
 
@@ -167,6 +167,7 @@ int main()
 	earth.set_spin(earth_spin);
 	earth.set_orbit({-2.5f, glm::radians(45.0f), glm::two_pi<float>() / 10.0f});
 	earth.add_child(&moon);
+	earth.set_scale(glm::vec3(1.0f, 1.0f, 1.0f));
 
 
 	//
@@ -249,8 +250,8 @@ int main()
 		// TODO: Replace this explicit rendering of the Earth and Moon
 		// with a traversal of the scene graph and rendering of all its
 		// nodes.
-		earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis);
-		//moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::mat4(1.0f), show_basis);
+		glm::mat4 earthTrans = earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis);
+		moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), earthTrans, show_basis);
 
 
 		//
