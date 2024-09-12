@@ -37,14 +37,20 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	glm::mat4 tiltObj = glm::rotate(glm::mat4(1.0f), _body.spin.axial_tilt, glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 rotObj = glm::rotate(glm::mat4(1.0f), _body.spin.rotation_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 
+	glm::mat4 ringTilt = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	glm::mat4 ringScale = glm::scale(glm::mat4(1.0f), glm::vec3(_ring.scale.x, _ring.scale.y, 1.0f));
+	
 	glm::mat4 orbitTransform = tiltOrbit * rotOrbit * translOrbit;
-	glm::mat4 world = parent_transform * orbitTransform * tiltObj * rotObj * scaleObj;
-	glm::mat4 childTrans = parent_transform * orbitTransform * tiltObj * scaleObj;
+	glm::mat4 worldSpaceTrans = parent_transform * orbitTransform * tiltObj * rotObj * scaleObj;
+	glm::mat4 childTrans = parent_transform * orbitTransform * tiltObj;
+	glm::mat4 ringTrans = parent_transform * ringScale * ringTilt;
 
+
+	//std::cout << "Ring scale x = " << _ring.scale.x << ", y = " << _ring.scale.y << std::endl;
 
 	if (show_basis)
 	{
-		bonobo::renderBasis(1.0f, 2.0f, view_projection, world);
+		bonobo::renderBasis(1.0f, 2.0f, view_projection, worldSpaceTrans);
 	}
 
 	// Note: The second argument of `node::render()` is supposed to be the
@@ -53,7 +59,8 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	// manage all the local transforms ourselves, so the internal transform
 	// of the node is just the identity matrix and we can forward the whole
 	// world matrix.
-	_body.node.render(view_projection, world);
+	_body.node.render(view_projection, worldSpaceTrans);
+	_ring.node.render(view_projection, ringTrans);
 
 	return childTrans;
 }

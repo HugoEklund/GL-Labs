@@ -11,6 +11,7 @@
 
 #include <clocale>
 #include <cstdlib>
+#include <stack>
 
 
 int main()
@@ -31,7 +32,7 @@ int main()
 	FPSCameraf camera(0.5f * glm::half_pi<float>(),
 					  static_cast<float>(config::resolution_x) / static_cast<float>(config::resolution_y), 0.01f, 1000.0f);
 
-	camera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 6.0f));
+	camera.mWorld.SetTranslate(glm::vec3(0.0f, 4.0f, 20.0f));
 	camera.mWorld.LookAt(glm::vec3(0.0f));
 	camera.mMouseSensitivity = glm::vec2(0.003f);
 	camera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
@@ -189,10 +190,16 @@ int main()
 	jupiter.set_spin(jupiter_spin);
 	jupiter.set_orbit(jupiter_orbit);
 
+	CelestialBody ring(saturn_ring_shape, &celestial_ring_shader, saturn_ring_texture);
+	ring.set_ring(saturn_ring_shape, &celestial_ring_shader, saturn_ring_texture, saturn_ring_scale);
+
 	CelestialBody saturn(sphere, &celestial_body_shader, saturn_texture);
 	saturn.set_scale(saturn_scale);
 	saturn.set_spin(saturn_spin);
 	saturn.set_orbit(saturn_orbit);
+	saturn.add_child(&ring);
+
+
 
 	CelestialBody uranus(sphere, &celestial_body_shader, uranus_texture);
 	uranus.set_scale(uranus_scale);
@@ -233,6 +240,7 @@ int main()
 	bool show_gui = true;
 	bool show_basis = false;
 	float time_scale = 1.0f;
+
 
 	while (!glfwWindowShouldClose(window)) {
 		//
@@ -294,12 +302,26 @@ int main()
 			CelestialBody* body;
 			glm::mat4 parent_transform;
 		};
-		// TODO: Replace this explicit rendering of the Earth and Moon
-		// with a traversal of the scene graph and rendering of all its
-		// nodes.
-		glm::mat4 earthTrans = earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis);
-		moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), earthTrans, show_basis);
 
+		std::stack<CelestialBodyRef> bodyRStack;
+		bodyRStack.push(CelestialBodyRef{ &sun, glm::mat4(1.0f) });
+
+		while (!bodyRStack.empty())
+		{
+			CelestialBodyRef curr = bodyRStack.top();
+			bodyRStack.pop();
+
+
+			glm::mat4 currBody = curr.body->render(animation_delta_time_us, camera.GetWorldToClipMatrix(), curr.parent_transform, show_basis);
+
+			for (CelestialBody* child : curr.body->get_children())
+			{
+				bodyRStack.push(CelestialBodyRef{ child, currBody });
+			}
+		}
+
+
+		//glm::mat4 earthTrans = earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis)
 
 		//
 		// Add controls to the scene.
