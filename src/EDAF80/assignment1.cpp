@@ -190,16 +190,11 @@ int main()
 	jupiter.set_spin(jupiter_spin);
 	jupiter.set_orbit(jupiter_orbit);
 
-	CelestialBody ring(saturn_ring_shape, &celestial_ring_shader, saturn_ring_texture);
-	ring.set_ring(saturn_ring_shape, &celestial_ring_shader, saturn_ring_texture, saturn_ring_scale);
-
 	CelestialBody saturn(sphere, &celestial_body_shader, saturn_texture);
 	saturn.set_scale(saturn_scale);
 	saturn.set_spin(saturn_spin);
 	saturn.set_orbit(saturn_orbit);
-	saturn.add_child(&ring);
-
-
+	saturn.set_ring(saturn_ring_shape, &celestial_ring_shader, saturn_ring_texture, saturn_ring_scale);
 
 	CelestialBody uranus(sphere, &celestial_body_shader, uranus_texture);
 	uranus.set_scale(uranus_scale);
@@ -303,25 +298,22 @@ int main()
 			glm::mat4 parent_transform;
 		};
 
-		std::stack<CelestialBodyRef> bodyRStack;
-		bodyRStack.push(CelestialBodyRef{ &sun, glm::mat4(1.0f) });
+		std::stack<CelestialBodyRef> bodyRefStack;
+		bodyRefStack.push(CelestialBodyRef{ &sun, glm::mat4(1.0f) });
 
-		while (!bodyRStack.empty())
+		while (!bodyRefStack.empty())
 		{
-			CelestialBodyRef curr = bodyRStack.top();
-			bodyRStack.pop();
+			CelestialBodyRef curr = bodyRefStack.top();
+			bodyRefStack.pop();
 
 
 			glm::mat4 currBody = curr.body->render(animation_delta_time_us, camera.GetWorldToClipMatrix(), curr.parent_transform, show_basis);
 
 			for (CelestialBody* child : curr.body->get_children())
 			{
-				bodyRStack.push(CelestialBodyRef{ child, currBody });
+				bodyRefStack.push(CelestialBodyRef{ child, currBody });
 			}
 		}
-
-
-		//glm::mat4 earthTrans = earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis)
 
 		//
 		// Add controls to the scene.

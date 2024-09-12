@@ -43,7 +43,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	glm::mat4 orbitTransform = tiltOrbit * rotOrbit * translOrbit;
 	glm::mat4 worldSpaceTrans = parent_transform * orbitTransform * tiltObj * rotObj * scaleObj;
 	glm::mat4 childTrans = parent_transform * orbitTransform * tiltObj;
-	glm::mat4 ringTrans = parent_transform * ringScale * ringTilt;
+	glm::mat4 ringTrans = childTrans * ringScale * ringTilt;
 
 
 	//std::cout << "Ring scale x = " << _ring.scale.x << ", y = " << _ring.scale.y << std::endl;
