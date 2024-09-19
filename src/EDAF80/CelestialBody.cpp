@@ -31,7 +31,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 
 	glm::mat4 translOrbit = glm::translate(glm::mat4(1.0f), glm::vec3(_body.orbit.radius, 0.0f, 0.0f));
 	glm::mat4 rotOrbit = glm::rotate(glm::mat4(1.0f), _body.orbit.rotation_angle, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 tiltOrbit = glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 inclOrbit = glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::mat4 scaleObj = glm::scale(glm::mat4(1.0f), _body.scale);
 	glm::mat4 tiltObj = glm::rotate(glm::mat4(1.0f), _body.spin.axial_tilt, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -40,9 +40,11 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	glm::mat4 ringTilt = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	glm::mat4 ringScale = glm::scale(glm::mat4(1.0f), glm::vec3(_ring.scale.x, _ring.scale.y, 1.0f));
 	
-	glm::mat4 orbitTransform = tiltOrbit * rotOrbit * translOrbit;
+	glm::mat4 orbitTransform = inclOrbit * rotOrbit * translOrbit;
+
 	glm::mat4 worldSpaceTrans = parent_transform * orbitTransform * tiltObj * rotObj * scaleObj;
 	glm::mat4 childTrans = parent_transform * orbitTransform * tiltObj;
+
 	glm::mat4 ringTrans = childTrans * ringScale * ringTilt;
 
 
