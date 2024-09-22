@@ -218,8 +218,12 @@ edaf80::Assignment2::run()
 			int i = floor(elapsed_time_s);
 			float x = elapsed_time_s - i;
 
-			int currIndex = i % control_point_locations.size();
-			int nextIndex = (currIndex + 1 ) % control_point_locations.size();
+			int ctrlPointSize = control_point_locations.size();
+
+			int currIndex = i % ctrlPointSize;
+			int prevIndex = (currIndex - 1 + ctrlPointSize) % ctrlPointSize; // måste göra + ctrlPointSize så det blir sista värdet ifall curr = 0 för vi kan ej göra modulo på -1
+			int nextIndex = (currIndex + 1 ) % ctrlPointSize;
+			int nextNextIndex = (nextIndex + 1) % ctrlPointSize;
 			
 			if (use_linear)
 			{
@@ -230,7 +234,7 @@ edaf80::Assignment2::run()
 			{
 				float t = 0.5; // tension
 
-				glm::vec3 catmullPos = interpolation::evalCatmullRom();
+				glm::vec3 catmullPos = interpolation::evalCatmullRom(control_point_locations[prevIndex], control_point_locations[currIndex], control_point_locations[nextIndex], control_point_locations[nextNextIndex], t, x);
 				circle_rings.get_transform().SetTranslate(catmullPos);
 			}
 		}
