@@ -48,7 +48,7 @@ edaf80::Assignment2::run()
 		return;
 
 	// Set up the camera
-	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 0.5f));
+	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 1.0f, 9.0f));
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
 	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 
@@ -213,18 +213,25 @@ edaf80::Assignment2::run()
 		bonobo::changePolygonMode(polygon_mode);
 
 
-		if (interpolate) {
-			//! \todo Interpolate the movement of a shape between various
-			//!        control points.
-			if (use_linear) {
-				//! \todo Compute the interpolated position
-				//!       using the linear interpolation.
+		if (interpolate)
+		{
+			int i = floor(elapsed_time_s);
+			float x = elapsed_time_s - i;
+
+			int currIndex = i % control_point_locations.size();
+			int nextIndex = (currIndex + 1 ) % control_point_locations.size();
+			
+			if (use_linear)
+			{
+				glm::vec3 lerpPos = interpolation::evalLERP(control_point_locations[currIndex], control_point_locations[nextIndex], x);
+				circle_rings.get_transform().SetTranslate(lerpPos);
 			}
-			else {
-				//! \todo Compute the interpolated position
-				//!       using the Catmull-Rom interpolation;
-				//!       use the `catmull_rom_tension`
-				//!       variable as your tension argument.
+			else
+			{
+				float t = 0.5; // tension
+
+				glm::vec3 catmullPos = interpolation::evalCatmullRom();
+				circle_rings.get_transform().SetTranslate(catmullPos);
 			}
 		}
 
