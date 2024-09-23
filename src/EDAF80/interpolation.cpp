@@ -7,7 +7,7 @@ interpolation::evalLERP(glm::vec3 const& p0, glm::vec3 const& p1, float const x)
 }
 
 glm::vec3
-interpolation::evalCatmullRom(glm::vec3 const& p0, glm::vec3 const& p1,
+interpolation::evalCatmullRom(glm::vec3 const& p0,glm::vec3 const& p1,
                               glm::vec3 const& p2, glm::vec3 const& p3,
                               float const t, float const x)
 {
@@ -22,13 +22,7 @@ interpolation::evalCatmullRom(glm::vec3 const& p0, glm::vec3 const& p1,
 		0.0f,	0.0f,	-t,					t
 	);
 
-	glm::vec4 pX(p0.x, p1.x, p2.x, p3.x);
-	glm::vec4 pY(p0.y, p1.y, p2.y, p3.y);
-	glm::vec4 pZ(p0.z, p1.z, p2.z, p3.z);
+	glm::vec4 ínterp{ exponentVec * cmMatrix };
 
-	float interpolatedX = glm::dot(cmMatrix * pX, exponentVec);
-	float interpolatedY = glm::dot(cmMatrix * pY, exponentVec);
-	float interpolatedZ = glm::dot(cmMatrix * pZ, exponentVec);
-
-	return glm::vec3(interpolatedX, interpolatedY, interpolatedZ);
+	return ínterp[0]*p0 + ínterp[1]*p1 + ínterp[2]*p2 + ínterp[3]*p3;
 }
