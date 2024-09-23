@@ -22,7 +22,7 @@ interpolation::evalCatmullRom(glm::vec3 const& p0,glm::vec3 const& p1,
 		0.0f,	0.0f,	-t,					t
 	);
 
-	glm::vec4 ínterp{ exponentVec * cmMatrix };
+	glm::vec4 temp{ exponentVec * cmMatrix };
 
-	return ínterp[0]*p0 + ínterp[1]*p1 + ínterp[2]*p2 + ínterp[3]*p3;
+	return temp[0]*p0 + temp[1]*p1 + temp[2]*p2 + temp[3]*p3;
 }
