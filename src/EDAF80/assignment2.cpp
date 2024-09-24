@@ -221,7 +221,7 @@ edaf80::Assignment2::run()
 			int ctrlPointSize = control_point_locations.size();
 
 			int currIndex = i % ctrlPointSize;
-			int prevIndex = (currIndex - 1 + ctrlPointSize) % ctrlPointSize; // måste göra + ctrlPointSize så det blir sista värdet ifall curr = 0 för vi kan ej göra modulo på -1
+			int prevIndex = (currIndex - 1 + ctrlPointSize) % ctrlPointSize;
 			int nextIndex = (currIndex + 1 ) % ctrlPointSize;
 			int nextNextIndex = (nextIndex + 1) % ctrlPointSize;
 			
@@ -234,8 +234,10 @@ edaf80::Assignment2::run()
 			{
 				float t = 0.5; // tension
 
-				glm::vec3 catmullPos = interpolation::evalCatmullRom(control_point_locations[prevIndex], control_point_locations[currIndex], control_point_locations[nextIndex], control_point_locations[nextNextIndex], t, x);
+				glm::vec3 catmullPos = interpolation::evalCatmullRom(control_point_locations[prevIndex], control_point_locations[currIndex], control_point_locations[nextIndex], control_point_locations[nextNextIndex ], t, x);
+				
 				circle_rings.get_transform().SetTranslate(catmullPos);
+				//std::cout << "pos " << catmullPos;
 			}
 		}
 

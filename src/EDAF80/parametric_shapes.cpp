@@ -141,9 +141,9 @@ parametric_shapes::createSphere(float const radius,
 										-radius * cos(phi),
 										radius * cos(theta) * sin(phi));
 
-			//texcoords[index] = glm::vec3(static_cast<float>(lati) / (static_cast<float>(lati_split_vertices_count)),
-			//							 static_cast<float>(longi) / (static_cast<float>(longi_split_vertices_count)),
-			//							 0.0f);
+			texcoords[index] = glm::vec3(static_cast<float>(lati) / (static_cast<float>(lati_split_vertices_count)),
+										 static_cast<float>(longi) / (static_cast<float>(longi_split_vertices_count)),
+										 0.0f);
 
 			auto const t = glm::vec3(cos(theta) * sin(phi),
 									 0,
@@ -214,10 +214,9 @@ parametric_shapes::createSphere(float const radius,
 	glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::normals));
 	glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::normals), 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(normals_offset));
 
-	/*glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size, static_cast<GLvoid const*>(texcoords.data()));
+	glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size, static_cast<GLvoid const*>(texcoords.data()));
 	glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::texcoords));
 	glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::texcoords), 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(texcoords_offset));
-	*/
 
 	glBufferSubData(GL_ARRAY_BUFFER, tangents_offset, tangents_size, static_cast<GLvoid const*>(tangents.data()));
 	glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::tangents));
