@@ -145,9 +145,9 @@ parametric_shapes::createSphere(float const radius,
 										 static_cast<float>(longi) / (static_cast<float>(longi_split_vertices_count)),
 										 0.0f);
 
-			auto const t = glm::vec3(cos(theta) * sin(phi),
+			auto const t = glm::vec3(cos(theta),
 									 0,
-									 -sin(theta) * sin(phi));
+									 -sin(theta));
 			tangents[index] = t;
 
 			auto const b = glm::vec3(sin(theta) * cos(phi),

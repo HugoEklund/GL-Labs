@@ -45,7 +45,7 @@ edaf80::Assignment3::run()
 	// Set up the camera
 	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 6.0f));
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
-	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
+	mCamera.mMovementSpeed = glm::vec3(4.0f); // 3 m/s => 10.8 km/h
 
 	// Create the shader programs
 	ShaderProgramManager program_manager;
@@ -75,13 +75,24 @@ edaf80::Assignment3::run()
 	if (normal_shader == 0u)
 		LogError("Failed to load normal shader");
 
+
 	GLuint texcoord_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Texture coords",
 	                                         { { ShaderType::vertex, "EDAF80/texcoord.vert" },
 	                                           { ShaderType::fragment, "EDAF80/texcoord.frag" } },
 	                                         texcoord_shader);
+
+	GLuint skybox_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Skybox",
+											{ { ShaderType::vertex, "EDAF80/skybox.vert" },
+											  { ShaderType::fragment, "EDAF80/skybox.frag" } },
+											skybox_shader);
+	if (skybox_shader == 0u)
+		LogError("Failed to load skybox shader");
+
 	if (texcoord_shader == 0u)
 		LogError("Failed to load texcoord shader");
+
 
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	auto const set_uniforms = [&light_position](GLuint program){
@@ -106,9 +117,18 @@ edaf80::Assignment3::run()
 		return;
 	}
 
+	GLuint cubemap = bonobo::loadTextureCubeMap(
+		config::resources_path("cubemaps/Maskonaive2/posx.jpg"),
+		config::resources_path("cubemaps/Maskonaive2/negx.jpg"),
+		config::resources_path("cubemaps/Maskonaive2/posy.jpg"),
+		config::resources_path("cubemaps/Maskonaive2/negy.jpg"),
+		config::resources_path("cubemaps/Maskonaive2/posz.jpg"),
+		config::resources_path("cubemaps/Maskonaive2/negz.jpg"));
+
 	Node skybox;
 	skybox.set_geometry(skybox_shape);
-	skybox.set_program(&fallback_shader, set_uniforms);
+	skybox.set_program(&skybox_shader, set_uniforms);
+	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 
 	auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
 	if (demo_shape.vao == 0u) {
@@ -198,10 +218,11 @@ edaf80::Assignment3::run()
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		bonobo::changePolygonMode(polygon_mode);
 
-
+		glDepthFunc(GL_LEQUAL);
 		skybox.render(mCamera.GetWorldToClipMatrix());
-		demo_sphere.render(mCamera.GetWorldToClipMatrix());
+		glDepthFunc(GL_LESS);
 
+		demo_sphere.render(mCamera.GetWorldToClipMatrix());
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
