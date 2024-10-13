@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 texcoords;
+layout (location = 2) in vec2 texCoords;
 
 uniform mat4 vertex_model_to_world;
 uniform mat4 normal_model_to_world;
@@ -22,7 +22,7 @@ const float sharp = 2.0;
 out VS_OUT {
 	vec3 vertex;
 	vec3 normal;
-	vec2 texcoords;
+	vec2 texCoords;
 } vs_out;
 
 float wave(vec2 position, vec2 direction, float amplitude, float frequency, float phase, float sharpness, float time)
