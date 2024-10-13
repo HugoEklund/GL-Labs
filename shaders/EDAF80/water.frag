@@ -24,7 +24,7 @@ void main()
 	float facing = 1.0 - max(dot(viewDir, normalMap), 0.0);
 
 	vec3 incident = viewDir;
-	vec3 reflection = reflect(-viewDir, normalMap);
+	vec3 reflectDir = reflect(-viewDir, normalMap);
 
 	float refracIndex1 = 1.0;
 	float refracIndex2 = 1.33;
@@ -35,11 +35,11 @@ void main()
 	float R0 = pow((refracIndex1 - refracIndex2) / (refracIndex1 + refracIndex2), 2.0);
 	float fresnel = R0 + (1.0 - R0) * pow(1.0 - dot(viewDir, normalMap), 5.0);
 
-	vec4 reflectionColor = vec4(texture(cubemap, reflection).rgb, 1.0);
+	vec4 reflectColor = vec4(texture(cubemap, reflectDir).rgb, 1.0);
 
-	vec4 refractionColor = vec4(texture(cubemap, refracDir).rgb, 1.0);
+	vec4 refracColor = vec4(texture(cubemap, refracDir).rgb, 1.0);
 
     vec4 colorMixed = mix(colorDeep, colorShallow, facing);
 
-    fragColor = vec4(colorMixed + reflectionColor * fresnel + refractionColor * (1 - fresnel));
+    fragColor = vec4(colorMixed + reflectColor * fresnel + refracColor * (1 - fresnel));
 }
