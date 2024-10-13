@@ -23,6 +23,7 @@ out VS_OUT {
 	vec3 vertex;
 	vec3 normal;
 	vec2 texCoords;
+	vec3 nBump;
 } vs_out;
 
 float wave(vec2 position, vec2 direction, float amplitude, float frequency, float phase, float sharpness, float time)
@@ -38,7 +39,7 @@ void main()
 
 	vs_out.vertex = vec3(vertex_model_to_world * vec4(displaced_vertex, 1.0));
 	vs_out.normal = vec3(normal_model_to_world * vec4(normal, 0.0));
-	vs_out.texcoords = texcoords;
+	vs_out.texCoords = texCoords;
 
 	gl_Position = vertex_world_to_clip * vertex_model_to_world * vec4(displaced_vertex, 1.0);
 }
