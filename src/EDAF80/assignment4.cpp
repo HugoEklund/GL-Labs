@@ -1,17 +1,14 @@
 #include "assignment4.hpp"
 #include "parametric_shapes.hpp"
-
 #include "config.hpp"
 #include "core/Bonobo.h"
 #include "core/FPSCamera.h"
 #include "core/helpers.hpp"
 #include "core/node.hpp"
 #include "core/ShaderProgramManager.hpp"
-
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <tinyfiledialogs.h>
-
 #include <clocale>
 #include <stdexcept>
 
@@ -53,21 +50,13 @@ edaf80::Assignment4::run()
 											{ { ShaderType::vertex, "EDAF80/water.vert" },
 											  { ShaderType::fragment, "EDAF80/water.frag" } },
 											water_shader);
-	if (water_shader == 0u)
-	{
-		LogError("Failed to load Water shader");
-		return;
-	}
 
 	GLuint skybox_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Skybox",
 											{ { ShaderType::vertex, "EDAF80/skybox.vert" },
 											  { ShaderType::fragment, "EDAF80/skybox.frag" } },
 											skybox_shader);
-	if (skybox_shader == 0u)
-	{
-		LogError("Failed to load skybox shader");
-	}
+
 
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	auto const light_uniform = [&light_position](GLuint program)
@@ -76,10 +65,15 @@ edaf80::Assignment4::run()
 	};
 
 	float elapsed_time_s = 0.0f;
-	auto const time_uniform = [&elapsed_time_s](GLuint program)
+	float normal_map = false;
+	auto const water_uniforms = [&elapsed_time_s, &light_position, &normal_map, &camera_position](GLuint program)
 	{
 		glUniform1f(glGetUniformLocation(program, "elapsed_time_s"), elapsed_time_s);
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		glUniform1i(glGetUniformLocation(program, "normalMap"), normal_map ? 1 : 0);
+		glUniform3fv(glGetUniformLocation(program, "cameraPos"), 1, glm::value_ptr(camera_position));
 	};
+
 
 #pragma region Skybox
 	auto skybox_shape = parametric_shapes::createSphere(500.0f, 100u, 100u);
@@ -99,8 +93,7 @@ edaf80::Assignment4::run()
 #pragma endregion
 
 #pragma region Water
-	auto waterBody = parametric_shapes::createQuad(100.0f, 100.0f, 1000u, 1000u);
-
+	auto waterBody = parametric_shapes::createQuad(100.0f, 100.0f, 2000u, 2000u);
 	GLuint waterTexture = bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
 
 	bonobo::material_data waterMat;
@@ -110,16 +103,14 @@ edaf80::Assignment4::run()
 	Node water;
 	water.set_geometry(waterBody);
 	water.set_material_constants(waterMat);
-	water.add_texture("watermap", waterTexture, GL_TEXTURE_2D);
+	water.add_texture("water", waterTexture, GL_TEXTURE_2D);
 	water.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
-	water.set_program(&water_shader, time_uniform);
-
+	water.set_program(&water_shader, water_uniforms);
 #pragma endregion
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
-
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -170,28 +161,14 @@ edaf80::Assignment4::run()
 		if (inputHandler.GetKeycodeState(GLFW_KEY_F11) & JUST_RELEASED)
 			mWindowManager.ToggleFullscreenStatusForWindow(window);
 
-
-		// Retrieve the actual framebuffer size: for HiDPI monitors,
-		// you might end up with a framebuffer larger than what you
-		// actually asked for. For example, if you ask for a 1920x1080
-		// framebuffer, you might get a 3840x2160 one instead.
-		// Also it might change as the user drags the window between
-		// monitors with different DPIs, or if the fullscreen status is
-		// being toggled.
 		int framebuffer_width, framebuffer_height;
 		glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
 		glViewport(0, 0, framebuffer_width, framebuffer_height);
-
-		//
-		// Todo: If you need to handle inputs, you can do it here
-		//
-
 
 		mWindowManager.NewImGuiFrame();
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		bonobo::changePolygonMode(polygon_mode);
-
 
 		if (!shader_reload_failed) {
 			glDepthFunc(GL_LEQUAL);
@@ -202,12 +179,6 @@ edaf80::Assignment4::run()
 		}
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		//
-		// Todo: If you want a custom ImGUI window, you can set it up
-		//       here
-		//
-
 
 		bool opened = ImGui::Begin("Scene Control", nullptr, ImGuiWindowFlags_None);
 		if (opened) {

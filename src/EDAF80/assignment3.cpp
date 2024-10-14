@@ -85,6 +85,7 @@ edaf80::Assignment3::run()
 	if (texcoord_shader == 0u)
 		LogError("Failed to load texcoord shader");
 
+
 	GLuint skybox_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Skybox",
 											{ { ShaderType::vertex, "EDAF80/skybox.vert" },
@@ -92,6 +93,15 @@ edaf80::Assignment3::run()
 											skybox_shader);
 	if (skybox_shader == 0u)
 		LogError("Failed to load skybox shader");
+
+
+	GLuint phong_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Phong",
+											{ { ShaderType::vertex, "EDAF80/phong.vert" },
+											  { ShaderType::fragment, "EDAF80/phong.frag" } },
+											phong_shader);
+	if (phong_shader == 0u)
+		LogError("Failed to load phong shader");
 
 	
 
@@ -101,23 +111,28 @@ edaf80::Assignment3::run()
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 	};
 
-	bool use_normal_mapping = false;
+
+	bonobo::material_data demo_material;
+	demo_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+	demo_material.diffuse = glm::vec3(0.7f, 0.2f, 0.4f);
+	demo_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	demo_material.shininess = 10.0f;
+
 	auto camera_position = mCamera.mWorld.GetTranslation();
-	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position](GLuint program){
+	bool use_normal_mapping = false;
+	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position, &demo_material](GLuint program){
 		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+
+		glUniform3fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(demo_material.ambient));
+		glUniform3fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(demo_material.diffuse));
+		glUniform3fv(glGetUniformLocation(program, "material.specular"), 1, glm::value_ptr(demo_material.specular));
+		glUniform1f(glGetUniformLocation(program, "material.shininess"), demo_material.shininess);
 	};
 
 
-	//
-	// Set up the two spheres used.
-	//
 	auto skybox_shape = parametric_shapes::createSphere(20.0f, 100u, 100u);
-	if (skybox_shape.vao == 0u) {
-		LogError("Failed to retrieve the mesh for the skybox");
-		return;
-	}
 
 	GLuint cubemap = bonobo::loadTextureCubeMap(
 		config::resources_path("cubemaps/Maskonaive2/posx.jpg"),
@@ -133,21 +148,20 @@ edaf80::Assignment3::run()
 	skybox.set_program(&skybox_shader, set_uniforms);
 
 	auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
-	if (demo_shape.vao == 0u) {
-		LogError("Failed to retrieve the mesh for the demo sphere");
-		return;
-	}
-
-	bonobo::material_data demo_material;
-	demo_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
-	demo_material.diffuse = glm::vec3(0.7f, 0.2f, 0.4f);
-	demo_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-	demo_material.shininess = 10.0f;
 
 	Node demo_sphere;
 	demo_sphere.set_geometry(demo_shape);
 	demo_sphere.set_material_constants(demo_material);
-	demo_sphere.set_program(&fallback_shader, phong_set_uniforms);
+	demo_sphere.set_program(&phong_shader, phong_set_uniforms);
+
+	GLuint const diffuse_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+	demo_sphere.add_texture("my_diffuse", diffuse_id, GL_TEXTURE_2D);
+
+	GLuint const specular_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
+	demo_sphere.add_texture("my_specular", specular_id, GL_TEXTURE_2D);
+
+	GLuint const normal_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
+	demo_sphere.add_texture("my_normal", normal_id, GL_TEXTURE_2D);
 
 
 	glClearDepthf(1.0f);
@@ -221,7 +235,7 @@ edaf80::Assignment3::run()
 		bonobo::changePolygonMode(polygon_mode);
 
 		glDepthFunc(GL_LEQUAL);
-		skybox.render(mCamera.GetWorldToClipMatrix());
+		skybox.render(mCamera.GetViewToClipMatrix());
 		glDepthFunc(GL_LESS);
 
 		demo_sphere.render(mCamera.GetWorldToClipMatrix());

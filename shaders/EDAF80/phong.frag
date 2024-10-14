@@ -47,22 +47,17 @@ void main()
     vec3 view_direction = normalize(camera_position - frag_position_world);
     vec3 reflect_direction = reflect(-light_direction, normal);
 
-
-   vec3 ambient = material.ambient;
- 
+	vec3 ambient = material.ambient;
 
     float diff = max(dot(light_direction, normal), 0.0);
     vec3 diffuse = diff * material.diffuse;
 
-   
-        diffuse *= texture(my_diffuse, frag_texcoord).rgb;
-
+	diffuse *= texture(my_diffuse, frag_texcoord).rgb;
 
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material.shininess);
     vec3 specular = spec * material.specular;
 
-	
-        specular *= texture(my_specular, frag_texcoord).rgb;
+	specular *= texture(my_specular, frag_texcoord).rgb;
 
 
     vec3 color = ambient + diffuse + specular;
