@@ -135,12 +135,12 @@ edaf80::Assignment3::run()
 	auto skybox_shape = parametric_shapes::createSphere(20.0f, 100u, 100u);
 
 	GLuint cubemap = bonobo::loadTextureCubeMap(
-		config::resources_path("cubemaps/Maskonaive2/posx.jpg"),
-		config::resources_path("cubemaps/Maskonaive2/negx.jpg"),
-		config::resources_path("cubemaps/Maskonaive2/posy.jpg"),
-		config::resources_path("cubemaps/Maskonaive2/negy.jpg"),
-		config::resources_path("cubemaps/Maskonaive2/posz.jpg"),
-		config::resources_path("cubemaps/Maskonaive2/negz.jpg"));
+		config::resources_path("cubemaps/Stairs/posx.jpg"),
+		config::resources_path("cubemaps/Stairs/negx.jpg"),
+		config::resources_path("cubemaps/Stairs/posy.jpg"),
+		config::resources_path("cubemaps/Stairs/negy.jpg"),
+		config::resources_path("cubemaps/Stairs/posz.jpg"),
+		config::resources_path("cubemaps/Stairs/negz.jpg"));
 
 	Node skybox;
 	skybox.set_geometry(skybox_shape);
@@ -235,7 +235,7 @@ edaf80::Assignment3::run()
 		bonobo::changePolygonMode(polygon_mode);
 
 		glDepthFunc(GL_LEQUAL);
-		skybox.render(mCamera.GetViewToClipMatrix());
+		skybox.render(mCamera.GetWorldToClipMatrix());
 		glDepthFunc(GL_LESS);
 
 		demo_sphere.render(mCamera.GetWorldToClipMatrix());

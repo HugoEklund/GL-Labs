@@ -50,6 +50,9 @@ edaf80::Assignment4::run()
 											{ { ShaderType::vertex, "EDAF80/water.vert" },
 											  { ShaderType::fragment, "EDAF80/water.frag" } },
 											water_shader);
+	if (water_shader == 0u)
+		LogError("Failed to load water shader");
+
 
 	GLuint skybox_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Skybox",
@@ -112,8 +115,8 @@ edaf80::Assignment4::run()
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 
-	auto lastTime = std::chrono::high_resolution_clock::now();
 
+	auto lastTime = std::chrono::high_resolution_clock::now();
 	bool pause_animation = true;
 	bool use_orbit_camera = false;
 	auto cull_mode = bonobo::cull_mode_t::disabled;

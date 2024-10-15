@@ -7,7 +7,7 @@ in VS_OUT {
 	vec3 nBump;
 } fs_in;
 
-uniform sampler2D waterTex;
+//uniform sampler2D waterTex;
 uniform samplerCube cubemap;
 uniform vec3 cameraPos;
 uniform vec3 lightPos;
