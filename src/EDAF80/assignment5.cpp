@@ -136,10 +136,10 @@ edaf80::Assignment5::run()
 	#pragma endregion
 
 	#pragma region Enemies
-	//std::vector<std::unique_ptr<Node>> enemies;
+	//std::vector<std::unique_ptr<Node>> enemyVec;
 	//std::rand()
 
-	//while (enemies.size() < 20)
+	//while (enemyVec.size() < 20)
 	//{
 	//	auto tempEnemy = std::make_unique<Node>();
 
@@ -151,7 +151,7 @@ edaf80::Assignment5::run()
 	//	tempEnemy->set_geometry(parametric_shapes::createSphere(5.0f, 30u, 30u));
 	//	tempEnemy->set_material_constants(demo_material);
 	//	tempEnemy->set_program(&phong_shader, uniforms);
-	//	enemies.push_back(std::move(tempEnemy));
+	//	enemyVec.push_back(std::move(tempEnemy));
 	//}
 	#pragma endregion
 
@@ -265,10 +265,10 @@ edaf80::Assignment5::run()
 		}
 
 		// spawna enemies
-		//int i = floor(elapsed_time_s);
-		//float x = elapsed_time_s - i;
-		//for (auto it = enemies.begin(); it != enemies.end(); ) {
-		//	auto& enemy = *it;
+		//int timeFloor = floor(elapsed_time_s);
+		//float x = elapsed_time_s - timeFloor;
+		//for (auto i = enemyVec.begin(); i != enemyVec.end(); ) {
+		//	auto& enemy = *i;
 
 		//	glm::vec3 startPos = enemy->get_transform().GetTranslation();
 
