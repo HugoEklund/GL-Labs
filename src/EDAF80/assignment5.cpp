@@ -272,7 +272,6 @@ edaf80::Assignment5::run()
 
 		//	glm::vec3 startPos = enemy->get_transform().GetTranslation();
 
-		//	float lerpFactor = 0.01f * deltaTimeUs.count() / 1e6f;
 		//	glm::vec3 newPos = interpolation::evalLERP(startPos, camera_position, x);
 
 		//	enemy->get_transform().SetTranslate(newPos);
