@@ -267,16 +267,16 @@ edaf80::Assignment5::run()
 		// spawna enemies
 		//int timeFloor = floor(elapsed_time_s);
 		//float x = elapsed_time_s - timeFloor;
-		//for (auto i = enemyVec.begin(); i != enemyVec.end(); ) {
-		//	auto& enemy = *i;
+		//for (auto i = enemyVec.begin(); i != enemyVec.end(); i++) {
+		//	auto& currEnemy = *i;
 
-		//	glm::vec3 startPos = enemy->get_transform().GetTranslation();
+		//	glm::vec3 startPos = currEnemy->get_transform().GetTranslation();
 
 		//	glm::vec3 newPos = interpolation::evalLERP(startPos, camera_position, x);
 
-		//	enemy->get_transform().SetTranslate(newPos);
+		//	currEnemy->get_transform().SetTranslate(newPos);
 
-		//	enemy->render(mCamera.GetWorldToClipMatrix());
+		//	currEnemy->render(mCamera.GetWorldToClipMatrix());
 		//}
 
 		if (show_basis)
