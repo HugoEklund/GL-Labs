@@ -1,5 +1,6 @@
 #include "assignment5.hpp"
 #include "interpolation.hpp"
+#include "interpolation.cpp"
 #include "parametric_shapes.hpp"
 #include "parametric_shapes.cpp"
 
@@ -73,7 +74,7 @@ edaf80::Assignment5::run()
 	float elapsed_time_s = 0.0f;
 
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
-	bool use_normal_mapping = false;
+	bool use_normal_mapping = true;
 	auto camera_position = mCamera.mWorld.GetTranslation();
 	auto const uniforms = [&use_normal_mapping, &light_position, &camera_position, &demo_material](GLuint program) {
 		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
@@ -105,9 +106,9 @@ edaf80::Assignment5::run()
 	#pragma endregion
 
 	#pragma region Gun
-	GLuint const diffuse_id = bonobo::loadTexture2D(config::resources_path("textures/asiimov.jpg"));
-	GLuint const specular_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
-	GLuint const normal_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
+	GLuint const gun_diffuse = bonobo::loadTexture2D(config::resources_path("textures/asiimov.jpg"));
+	GLuint const gun_specular = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
+	GLuint const gun_normal = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
 
 	std::vector<bonobo::mesh_data> loaded_objects = bonobo::loadObjects(config::resources_path("gun/gun.obj"));
 
@@ -115,9 +116,9 @@ edaf80::Assignment5::run()
 	gun.set_geometry(loaded_objects[0]);
 	gun.set_material_constants(demo_material);
 	gun.set_program(&phong_shader, uniforms);
-	gun.add_texture("my_diffuse", diffuse_id, GL_TEXTURE_2D);
-	gun.add_texture("my_specular", specular_id, GL_TEXTURE_2D);
-	gun.add_texture("my_normal", normal_id, GL_TEXTURE_2D);
+	gun.add_texture("my_diffuse", gun_diffuse, GL_TEXTURE_2D);
+	gun.add_texture("my_specular", gun_specular, GL_TEXTURE_2D);
+	gun.add_texture("my_normal", gun_normal, GL_TEXTURE_2D);
 
 	std::vector<std::unique_ptr<Node>> parts;
 	parts.reserve(loaded_objects.size() - 1);
@@ -127,32 +128,25 @@ edaf80::Assignment5::run()
 		parts[i - 1]->set_geometry(loaded_objects[i]);
 		parts[i - 1]->set_material_constants(demo_material);
 		parts[i - 1]->set_program(&phong_shader, uniforms);
-		parts[i - 1]->add_texture("my_diffuse", diffuse_id, GL_TEXTURE_2D);
-		parts[i - 1]->add_texture("my_specular", specular_id, GL_TEXTURE_2D);
-		parts[i - 1]->add_texture("my_normal", normal_id, GL_TEXTURE_2D);
+		parts[i - 1]->add_texture("my_diffuse", gun_diffuse, GL_TEXTURE_2D);
+		parts[i - 1]->add_texture("my_specular", gun_specular, GL_TEXTURE_2D);
+		parts[i - 1]->add_texture("my_normal", gun_normal, GL_TEXTURE_2D);
 
 		gun.add_child(parts[i - 1].get());
 	}
 	#pragma endregion
 
 	#pragma region Enemies
-	//std::vector<std::unique_ptr<Node>> enemyVec;
-	//std::rand()
+	std::vector<std::unique_ptr<Node>> enemyVec;
+	std::random_device rng;
+	std::mt19937 gen(rng());
+	std::uniform_real_distribution<float> circum(0.0f, glm::two_pi<float>());
+	std::uniform_real_distribution<float> height(glm::radians(-10.0f), glm::radians(10.0f));
+	int spawnDelay = 2;
 
-	//while (enemyVec.size() < 20)
-	//{
-	//	auto tempEnemy = std::make_unique<Node>();
-
-	//	glm::vec3 enemyPos;
-	//	enemyPos.x = skyboxRad * // ngn random value typ
-	//	enemyPos.y = skyboxRad
-	//	enemyPos.z = skyboxRad
-
-	//	tempEnemy->set_geometry(parametric_shapes::createSphere(5.0f, 30u, 30u));
-	//	tempEnemy->set_material_constants(demo_material);
-	//	tempEnemy->set_program(&phong_shader, uniforms);
-	//	enemyVec.push_back(std::move(tempEnemy));
-	//}
+	GLuint const enemy_diffuse = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+	GLuint const enemy_specular = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
+	GLuint const enemy_normal = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
 	#pragma endregion
 
 	glClearDepthf(1.0f);
@@ -256,7 +250,6 @@ edaf80::Assignment5::run()
 		glm::mat4 thaiRotate = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 		glm::mat4 thaiGun = thaiScale * thaiTranslate * thaiRotate;
 
-		//demo_sphere.set_material_constants(demo_material);
 		gun.render(mCamera.GetViewToClipMatrix(), thaiGun);
 		for (int i = 0; i < loaded_objects.size() - 1; i++) {
 
@@ -264,20 +257,38 @@ edaf80::Assignment5::run()
 			bit->render(mCamera.GetViewToClipMatrix(), thaiGun * gun.get_transform().GetMatrix());
 		}
 
-		// spawna enemies
-		//int timeFloor = floor(elapsed_time_s);
-		//float x = elapsed_time_s - timeFloor;
-		//for (auto i = enemyVec.begin(); i != enemyVec.end(); i++) {
-		//	auto& currEnemy = *i;
+		#pragma region EnemySpawn
+		static float lastSpawnTime = -spawnDelay;
+		if (elapsed_time_s - lastSpawnTime >= spawnDelay && enemyVec.size() < 20)
+		{
+			lastSpawnTime = elapsed_time_s;
 
-		//	glm::vec3 startPos = currEnemy->get_transform().GetTranslation();
+			auto tempEnemy = std::make_unique<Node>();
 
-		//	glm::vec3 newPos = interpolation::evalLERP(startPos, camera_position, x);
+			glm::vec3 enemyPos;
+			enemyPos.x = skyboxRad * cos(height(gen)) * cos(circum(gen));
+			enemyPos.y = skyboxRad * sin(height(gen));
+			enemyPos.z = skyboxRad * sin(circum(gen) * cos(height(gen)));
 
-		//	currEnemy->get_transform().SetTranslate(newPos);
+			tempEnemy->get_transform().SetTranslate(enemyPos);
+			tempEnemy->set_geometry(parametric_shapes::createSphere(1.0f, 30u, 30u));
+			tempEnemy->set_material_constants(demo_material);
+			tempEnemy->add_texture("my_diffuse", enemy_diffuse, GL_TEXTURE_2D);
+			tempEnemy->add_texture("my_specular", enemy_specular, GL_TEXTURE_2D);
+			tempEnemy->add_texture("my_normal", enemy_normal, GL_TEXTURE_2D);
+			tempEnemy->set_program(&phong_shader, uniforms);
+			enemyVec.push_back(std::move(tempEnemy));
+		}
 
-		//	currEnemy->render(mCamera.GetWorldToClipMatrix());
-		//}
+		for (auto& currEnemy : enemyVec)
+		{
+			glm::vec3 startPos = currEnemy->get_transform().GetTranslation();
+			glm::vec3 newPos = interpolation::evalLERP(startPos, camera_position, 0.001);
+
+			currEnemy->get_transform().SetTranslate(newPos);
+			currEnemy->render(mCamera.GetWorldToClipMatrix());
+		}
+		#pragma endregion
 
 		if (show_basis)
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());
