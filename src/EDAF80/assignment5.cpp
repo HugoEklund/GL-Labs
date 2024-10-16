@@ -45,23 +45,29 @@ edaf80::Assignment5::~Assignment5()
 void
 edaf80::Assignment5::run()
 {
-	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 6.0f));
+	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 0.0f));
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
-	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
+	mCamera.mMovementSpeed = glm::vec3(0.0f); // 3 m/s => 10.8 km/h
 
 	ShaderProgramManager program_manager;
 
 	GLuint skybox_shader = 0u;
 	program_manager.CreateAndRegisterProgram("skybox",
-											{ { ShaderType::vertex, "EDAF80/skybox.vert" },
-											  { ShaderType::fragment, "EDAF80/skybox.frag" } },
-											skybox_shader);
+		{ { ShaderType::vertex, "EDAF80/skybox.vert" },
+		  { ShaderType::fragment, "EDAF80/skybox.frag" } },
+		skybox_shader);
 
 	GLuint phong_shader = 0u;
 	program_manager.CreateAndRegisterProgram("phong",
-											{ { ShaderType::vertex, "EDAF80/phong.vert" },
-											  { ShaderType::fragment, "EDAF80/phong.frag" } },
-											phong_shader);
+		{ { ShaderType::vertex, "EDAF80/phong.vert" },
+		  { ShaderType::fragment, "EDAF80/phong.frag" } },
+		phong_shader);
+
+	GLuint water_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Water",
+		{ { ShaderType::vertex, "EDAF80/water.vert" },
+		  { ShaderType::fragment, "EDAF80/water.frag" } },
+		water_shader);
 
 
 	bonobo::material_data demo_material;
@@ -72,14 +78,28 @@ edaf80::Assignment5::run()
 
 	float skyboxRad = 200.0f;
 	float elapsed_time_s = 0.0f;
+	bool firing = false;
+	float count = 0;
+	glm::mat4 viewMatrix;
+	glm::mat3 rotMatrix;
+	glm::vec3 forward;
+	glm::vec3 bulletDir;
+	glm::vec3 bulletPos;
+	glm::mat4 thaiTranslate;
+	glm::mat4 thaiRotate;
 
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	bool use_normal_mapping = true;
 	auto camera_position = mCamera.mWorld.GetTranslation();
-	auto const uniforms = [&use_normal_mapping, &light_position, &camera_position, &demo_material](GLuint program) {
+	auto const uniforms = [&use_normal_mapping, &light_position, &camera_position, &demo_material, &elapsed_time_s](GLuint program) {
 		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+
+		glUniform1f(glGetUniformLocation(program, "elapsed_time_s"), elapsed_time_s);
+		glUniform1i(glGetUniformLocation(program, "normalMap"), use_normal_mapping ? 1 : 0);
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		glUniform3fv(glGetUniformLocation(program, "cameraPos"), 1, glm::value_ptr(camera_position));
 
 		glUniform3fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(demo_material.ambient));
 		glUniform3fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(demo_material.diffuse));
@@ -106,6 +126,7 @@ edaf80::Assignment5::run()
 	#pragma endregion
 
 	#pragma region Gun
+
 	GLuint const gun_diffuse = bonobo::loadTexture2D(config::resources_path("textures/asiimov.jpg"));
 	GLuint const gun_specular = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
 	GLuint const gun_normal = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
@@ -134,7 +155,7 @@ edaf80::Assignment5::run()
 
 		gun.add_child(parts[i - 1].get());
 	}
-	#pragma endregion
+#pragma endregion
 
 	#pragma region Enemies
 	std::vector<std::unique_ptr<Node>> enemyVec;
@@ -149,12 +170,24 @@ edaf80::Assignment5::run()
 	GLuint const enemy_normal = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
 	#pragma endregion
 
+	#pragma region Bullet
+	auto tempBullet = Node();
+
+	GLuint waterTexture = bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
+
+	tempBullet.set_geometry(parametric_shapes::createSphere(0.8f, 20u, 20u));
+	tempBullet.set_material_constants(demo_material);
+	tempBullet.add_texture("water", waterTexture, GL_TEXTURE_2D);
+	tempBullet.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	tempBullet.set_program(&water_shader, uniforms);
+	#pragma endregion
+
+
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
-
 	bool use_orbit_camera = false;
 	std::int32_t demo_sphere_program_index = 0;
 	auto cull_mode = bonobo::cull_mode_t::disabled;
@@ -246,9 +279,8 @@ edaf80::Assignment5::run()
 		ImGui::End();
 
 		glm::mat4 thaiScale = glm::mat4(0.005f);
-		glm::mat4 thaiTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(50.0f, -40.0f, -100.0f));
-		glm::mat4 thaiRotate = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 		glm::mat4 thaiGun = thaiScale * thaiTranslate * thaiRotate;
+
 
 		gun.render(mCamera.GetViewToClipMatrix(), thaiGun);
 		for (int i = 0; i < loaded_objects.size() - 1; i++) {
@@ -257,7 +289,45 @@ edaf80::Assignment5::run()
 			bit->render(mCamera.GetViewToClipMatrix(), thaiGun * gun.get_transform().GetMatrix());
 		}
 
-		#pragma region EnemySpawn
+		if (inputHandler.GetKeycodeState(GLFW_KEY_SPACE) & JUST_PRESSED && count < elapsed_time_s)
+		{
+			firing = true;
+			count = elapsed_time_s + 0.5;
+		}
+
+		if (firing)
+		{
+			float x = count - elapsed_time_s;
+			float shotForward = (1 - (x / 0.5)) * 1.5;
+			float change = (x / 3) * 30;
+
+			thaiTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, -30.0f, -100.0f - change));
+			thaiRotate = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(70.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+
+			bulletPos += bulletDir * shotForward;
+			tempBullet.get_transform().SetTranslate(bulletPos);
+			glm::mat4 bulletMove = glm::translate(glm::mat4(1.0f), bulletPos);
+			tempBullet.render(mCamera.GetWorldToClipMatrix(), bulletMove);
+
+			if (count < elapsed_time_s)
+			{
+				firing = false;
+				count = 0.0f;
+			}
+		}
+		else
+		{
+			thaiTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(50.0f, -40.0f, -100.0f));
+			thaiRotate = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+
+			viewMatrix = mCamera.mWorld.GetMatrix();
+			rotMatrix = glm::mat3(viewMatrix);
+			forward = -glm::normalize(rotMatrix[2]);
+			bulletDir = forward;
+			bulletPos = glm::vec3(0.0f, -1.0f, 0.0f);
+		}
+
+#pragma region EnemySpawn
 		static float lastSpawnTime = -spawnDelay;
 		if (elapsed_time_s - lastSpawnTime >= spawnDelay && enemyVec.size() < 20)
 		{
@@ -270,14 +340,14 @@ edaf80::Assignment5::run()
 			enemyPos.y = skyboxRad * sin(height(gen));
 			enemyPos.z = skyboxRad * sin(circum(gen) * cos(height(gen)));
 
-			tempEnemy->get_transform().SetTranslate(enemyPos);
 			tempEnemy->set_geometry(parametric_shapes::createSphere(1.0f, 30u, 30u));
+			tempEnemy->get_transform().SetTranslate(enemyPos);
 			tempEnemy->set_material_constants(demo_material);
 			tempEnemy->add_texture("my_diffuse", enemy_diffuse, GL_TEXTURE_2D);
 			tempEnemy->add_texture("my_specular", enemy_specular, GL_TEXTURE_2D);
 			tempEnemy->add_texture("my_normal", enemy_normal, GL_TEXTURE_2D);
 			tempEnemy->set_program(&phong_shader, uniforms);
-			enemyVec.push_back(std::move(tempEnemy));
+			enemyVec.emplace_back(std::move(tempEnemy));
 		}
 
 		for (auto& currEnemy : enemyVec)
@@ -288,7 +358,7 @@ edaf80::Assignment5::run()
 			currEnemy->get_transform().SetTranslate(newPos);
 			currEnemy->render(mCamera.GetWorldToClipMatrix());
 		}
-		#pragma endregion
+#pragma endregion
 
 		if (show_basis)
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());
