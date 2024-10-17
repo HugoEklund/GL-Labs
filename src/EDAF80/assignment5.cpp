@@ -1,3 +1,4 @@
+
 #include "assignment5.hpp"
 #include "interpolation.hpp"
 #include "interpolation.cpp"
@@ -50,6 +51,12 @@ edaf80::Assignment5::run()
 	mCamera.mMovementSpeed = glm::vec3(0.0f); // 3 m/s => 10.8 km/h
 
 	ShaderProgramManager program_manager;
+
+	GLuint fallback_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Fallback",
+		{ { ShaderType::vertex, "common/fallback.vert" },
+		  { ShaderType::fragment, "common/fallback.frag" } },
+		fallback_shader);
 
 	GLuint skybox_shader = 0u;
 	program_manager.CreateAndRegisterProgram("skybox",
@@ -107,7 +114,7 @@ edaf80::Assignment5::run()
 		glUniform1f(glGetUniformLocation(program, "material.shininess"), demo_material.shininess);
 	};
 
-	#pragma region Skybox
+#pragma region Skybox
 	auto skybox_shape = parametric_shapes::createSphere(skyboxRad, 100u, 100u);
 
 	GLuint cubemap = bonobo::loadTextureCubeMap(
@@ -123,13 +130,19 @@ edaf80::Assignment5::run()
 	skybox.set_geometry(skybox_shape);
 	skybox.add_texture("skybox", cubemap, GL_TEXTURE_CUBE_MAP);
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Gun
+#pragma region Gun
 
 	GLuint const gun_diffuse = bonobo::loadTexture2D(config::resources_path("textures/asiimov.jpg"));
 	GLuint const gun_specular = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
 	GLuint const gun_normal = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
+
+	auto cross = Node();
+
+	cross.set_geometry(parametric_shapes::createSphere(0.0001f, 8u, 8u));
+	cross.set_material_constants(demo_material);
+	cross.set_program(&fallback_shader, uniforms);
 
 	std::vector<bonobo::mesh_data> loaded_objects = bonobo::loadObjects(config::resources_path("gun/gun.obj"));
 
@@ -157,7 +170,7 @@ edaf80::Assignment5::run()
 	}
 #pragma endregion
 
-	#pragma region Enemies
+#pragma region Enemies
 	std::vector<std::unique_ptr<Node>> enemyVec;
 	std::random_device rng;
 	std::mt19937 gen(rng());
@@ -168,19 +181,19 @@ edaf80::Assignment5::run()
 	GLuint const enemy_diffuse = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
 	GLuint const enemy_specular = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
 	GLuint const enemy_normal = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Bullet
+#pragma region Bullet
 	auto tempBullet = Node();
 
 	GLuint waterTexture = bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
 
-	tempBullet.set_geometry(parametric_shapes::createSphere(0.8f, 20u, 20u));
+	tempBullet.set_geometry(parametric_shapes::createSphere(0.4f, 20u, 20u));
 	tempBullet.set_material_constants(demo_material);
 	tempBullet.add_texture("water", waterTexture, GL_TEXTURE_2D);
 	tempBullet.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 	tempBullet.set_program(&water_shader, uniforms);
-	#pragma endregion
+#pragma endregion
 
 
 	glClearDepthf(1.0f);
@@ -198,6 +211,7 @@ edaf80::Assignment5::run()
 	bool show_basis = false;
 	float basis_thickness_scale = 1.0f;
 	float basis_length_scale = 1.0f;
+	int score = 0;
 
 	changeCullMode(cull_mode);
 
@@ -247,6 +261,8 @@ edaf80::Assignment5::run()
 		skybox.render(mCamera.GetWorldToClipMatrix());
 		glEnable(GL_DEPTH_TEST);
 		//demo_sphere.render(mCamera.GetWorldToClipMatrix());
+
+		cross.render(mCamera.GetViewToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.001f, -0.1f)));
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -298,7 +314,7 @@ edaf80::Assignment5::run()
 		if (firing)
 		{
 			float x = count - elapsed_time_s;
-			float shotForward = (1 - (x / 0.5)) * 1.5;
+			float shotForward = (1 - (x / 0.5)) * 10;
 			float change = (x / 3) * 30;
 
 			thaiTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, -30.0f, -100.0f - change));
@@ -327,7 +343,7 @@ edaf80::Assignment5::run()
 			bulletPos = glm::vec3(0.0f, -1.0f, 0.0f);
 		}
 
-#pragma region EnemySpawn
+#pragma region EnemyManager
 		static float lastSpawnTime = -spawnDelay;
 		if (elapsed_time_s - lastSpawnTime >= spawnDelay && enemyVec.size() < 20)
 		{
@@ -350,21 +366,36 @@ edaf80::Assignment5::run()
 			enemyVec.emplace_back(std::move(tempEnemy));
 		}
 
-		for (auto& currEnemy : enemyVec)
-		{
+		enemyVec.erase(
+			std::remove_if(enemyVec.begin(), enemyVec.end(),
+				[&](auto& currEnemy) {
 			glm::vec3 startPos = currEnemy->get_transform().GetTranslation();
 			glm::vec3 newPos = interpolation::evalLERP(startPos, camera_position, 0.001);
 
-			currEnemy->get_transform().SetTranslate(newPos);
-			currEnemy->render(mCamera.GetWorldToClipMatrix());
-		}
+			float distance = glm::distance2(newPos, bulletPos);
+			float radiusSum = 1.0f + 0.4f;
+
+			if (distance >= radiusSum * radiusSum) {
+				currEnemy->get_transform().SetTranslate(newPos);
+				currEnemy->render(mCamera.GetWorldToClipMatrix());
+				return false;  // Keep this enemy
+			}
+			score += 1;
+			return true;  // Remove this enemy
+		}),
+			enemyVec.end());
 #pragma endregion
+
+		bool const open = ImGui::Begin("Score", nullptr, ImGuiWindowFlags_None);
+		if (open) {
+
+			ImGui::Text("Current number: %d", score);
+		}
+		ImGui::End();
 
 		if (show_basis)
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());
 
-		if (show_logs)
-			Log::View::Render();
 		mWindowManager.RenderImGuiFrame(show_gui);
 
 		glfwSwapBuffers(window);
